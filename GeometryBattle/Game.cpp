@@ -37,14 +37,23 @@ void Game::sMovement()
 	{
 		m_player->CTransform->velocity.x = 0;
 	}
+	int i = 0; 
+	for (auto& e : m_manager.getEntities("Special"))
+	{
+	    e->CTransform->angle += m_weapon_CFG.angularSpeed; 
 
+		float x = m_player->CTransform->pos.x + m_weapon_CFG.spinningRadius * std::cos(e->CTransform->angle);
+		float y = m_player->CTransform->pos.y + m_weapon_CFG.spinningRadius * std::sin(e->CTransform->angle);
+		e->CTransform->pos = Vec2(x, y); 
+		++i; 
+	}
 
 	for (auto& e : m_manager.getEntities())
 	{
-		e->CTransform->pos.x += e->CTransform->velocity.x;
-		e->CTransform->pos.y += e->CTransform->velocity.y;
+			e->CTransform->pos.x += e->CTransform->velocity.x;
+			e->CTransform->pos.y += e->CTransform->velocity.y;
 	}
-
+	
 }
 
 void Game::sUserInput()
@@ -180,7 +189,11 @@ void Game::sUserInput()
 				}
 				else if (event.mouseButton.button == sf::Mouse::Right)
 				{
-					SpawnSpecialWeapon(m_player); 
+					if (m_currentframe - m_lastTimeSpecWeaponUsed >= m_weapon_CFG.CD)
+					{
+						SpawnSpecialWeapon(m_player);
+						m_lastTimeSpecWeaponUsed = m_currentframe;
+					} 
 				}
 				break;
 			}
@@ -231,6 +244,35 @@ void Game::sCollision()
 		}
 	}
 
+	for (const auto& w : m_manager.getEntities("Special"))
+	{
+		for (auto& e : m_manager.getEntities("Enemy"))
+		{
+			Vec2 D(w->CTransform->pos.x - e->CTransform->pos.x, w->CTransform->pos.y - e->CTransform->pos.y);
+			float L = std::sqrtf(D.x * D.x + D.y * D.y);
+			if (L <= w->CCollision->radius + e->CCollision->radius)
+			{
+				m_score += e->CScore->score;
+				e->destroy();
+			}
+		}
+	}
+
+	for (const auto& w : m_manager.getEntities("Special"))
+	{
+		for (auto& e : m_manager.getEntities("SmallEnemy"))
+		{
+			Vec2 D(w->CTransform->pos.x - e->CTransform->pos.x, w->CTransform->pos.y - e->CTransform->pos.y);
+			float L = std::sqrtf(D.x * D.x + D.y * D.y);
+			if (L <= w->CCollision->radius + e->CCollision->radius)
+			{
+				m_score += e->CScore->score;
+				e->destroy();
+			}
+		}
+	}
+
+
 	for (auto& b : m_manager.getEntities("Bullet"))
 	{
 		for (auto& e : m_manager.getEntities("Enemy"))
@@ -269,7 +311,13 @@ void Game::sCollision()
 		float L = std::sqrtf(D.x * D.x + D.y * D.y);
 		if (L <= m_player->CCollision->radius + e->CCollision->radius)
 		{
-			m_player->CTransform->pos = Vec2(m_window.getSize().x / 2, m_window.getSize().y / 2); 
+			if (m_Player_CFG.vulnerable)
+			{
+				m_player->CTransform->pos = Vec2(m_window.getSize().x / 2, m_window.getSize().y / 2);
+			}
+			else {
+				m_score += e->CScore->score;
+			}
 			e->destroy(); 
 		}
 	}
@@ -283,8 +331,7 @@ void Game::sCollision()
 			m_player->CTransform->pos = Vec2(m_window.getSize().x / 2, m_window.getSize().y / 2);
 			e->destroy();
 		}
-	}
-
+	}	
 }
 
 void Game::sRender()
@@ -339,24 +386,26 @@ void Game::sLifeSpan()
 		e->CShape->circle.setFillColor(sf::Color(e->CShape->circle.getFillColor().r , e->CShape->circle.getFillColor().g  , e->CShape->circle.getFillColor().b, -alpha));
 		e->CShape->circle.setOutlineColor(sf::Color(e->CShape->circle.getOutlineColor().r , e->CShape->circle.getOutlineColor().g , e->CShape->circle.getOutlineColor().b , -alpha));
 	}
-
-
+	bool speedReduced = false;
+	for (auto& w : m_manager.getEntities("Special"))
+	{
+		 
+		w->CLifespan->remain -= 1; 
+		if (w->CLifespan->remain == 0)
+		{
+			if (!speedReduced) 
+			{
+				m_Player_CFG.speed /= 2;
+				speedReduced = true; 
+				m_Player_CFG.vulnerable = true; 
+			}
+			w->destroy();  
+		}	
+	}
 }
 
 void Game::sEnemySpawner()
 {
-	if (m_score > 10000)
-	{
-		m_Enemy_CFG.spawnInterval = 50;
-		if (m_score > 20000)
-		{
-			m_Enemy_CFG.spawnInterval = 40;
-			if (m_score > 30000)
-			{
-				m_Enemy_CFG.spawnInterval = 30;
-			}
-		}
-	}
 	if (m_currentframe - m_lastTimeEnemySpawned == m_Enemy_CFG.spawnInterval)
 	{
 		SpawnEnemy(); 
@@ -400,9 +449,6 @@ void Game::SpawnEnemy()
 
 void Game::SpawnSmallEnemies(std::shared_ptr<Entity> ent)
 {	
-	int angle = 0; 
-	int add = 360 / ent->CShape->circle.getPointCount(); 	
-	
 	float x, y; 
 	for (int i = 0; i < ent->CShape->circle.getPointCount(); i++)
 	{	 	
@@ -410,11 +456,12 @@ void Game::SpawnSmallEnemies(std::shared_ptr<Entity> ent)
 		e->CShape = std::make_shared<CShape>(ent->CShape->circle.getRadius() / 2, ent->CShape->circle.getPointCount(), ent->CShape->circle.getFillColor(), ent->CShape->circle.getOutlineColor(), ent->CShape->circle.getOutlineThickness()); 
 		e->CCollision = std::make_shared<CCollision>(ent->CCollision->radius / 2); 
 		e->CLifespan = std::make_shared<CLifespan>(m_Enemy_CFG.smallEnemyLifespan); 
-		x = std::cos(angle)* m_Enemy_CFG.minSpeed;
-		y = std::sin(angle)*m_Enemy_CFG.minSpeed;
+		float angle = 2 * 3.14159265 * i / ent->CShape->circle.getPointCount();
+		x = std::cos(angle)* m_Enemy_CFG.smallEnemiesSpeed;
+		y = std::sin(angle)*m_Enemy_CFG.smallEnemiesSpeed;
 		e->CScore = std::make_shared<CScore>( ent->CScore->score/ent->CShape->circle.getPointCount()); 
 		e->CTransform = std::make_shared<CTransform>(ent->CTransform->pos, Vec2(x ,y), 0);	
-		angle += add;	
+		
 	}
 
 
@@ -438,7 +485,8 @@ void Game::SpawnBullet(const std::shared_ptr<Entity> ent, const Vec2& mousePos)
 
 void Game::SpawnSpecialWeapon(std::shared_ptr<Entity> ent)
 {
-	
+	m_Player_CFG.vulnerable = false; 
+	m_Player_CFG.speed *= 2; 
 	std::vector<std::shared_ptr<Entity>> container; 
 	for (int i = 0; i < m_weapon_CFG.nSpheres; i++)
 	{
@@ -447,11 +495,11 @@ void Game::SpawnSpecialWeapon(std::shared_ptr<Entity> ent)
 		float angle = 2 * 3.14159265 * i / m_weapon_CFG.nSpheres; // Равномерное распределение сфер вокруг круга	
 		float x = ent->CTransform->pos.x + m_weapon_CFG.spinningRadius * std::cos(angle);
 		float y = ent->CTransform->pos.y + m_weapon_CFG.spinningRadius * std::sin(angle);
+		container[i]->CCollision = std::make_shared<CCollision>(m_weapon_CFG.collision_radius);
+		
+		container[i]->CLifespan = std::make_shared<CLifespan>(m_weapon_CFG.duration); 
 
-		//float vx = m_weapon_CFG.spinningRadius * std::cos(angle * 3.14159265 / 180); 
-		//float vy = m_weapon_CFG.spinningRadius * std::sin(angle * 3.14159265 / 180);
-
-		//container[i]->CTransform = std::make_shared<CTransform>(Vec2(x, y), Vec2(vx , vy), 0.f); 
+		container[i]->CTransform = std::make_shared<CTransform>(Vec2(x, y), Vec2(0 ,0), 2 * 3.14159265 * i / m_weapon_CFG.nSpheres);
 	}
 }
 

@@ -15,7 +15,7 @@ struct PlayerConfig
 	
 	sf::Color outLineColor{ 255 , 0 , 0 };
 	
-
+	bool vulnerable = true; 
 	int outlineThickness = 4; 
 	int nVertices = 8;
 };
@@ -25,6 +25,7 @@ struct EnemyConfig
 {
 	int shape_radius = 32;
 	int collision_radius = 32;
+	int smallEnemiesSpeed = 2; 
 	int minSpeed = 3; 
 	int maxSpeed = 7; 
 	sf::Uint8 outLinecolor_r = 255;
@@ -62,8 +63,12 @@ struct SpecialWeaponConfig
 	sf::Color fillColor{ 10 , 10 , 10 };
 	sf::Color outLineColor{ 255 , 0 , 0 };
 	int outlineThickness = 3;
-	float spinningRadius = 100.f; 
+	float spinningRadius = 130.f; 
 	int nSpheres = 3; 
+	float angularSpeed = 1.f; 
+	int CD = 1200; 
+	int duration = 510; 
+	bool over = false; 
 };
 
 class Game

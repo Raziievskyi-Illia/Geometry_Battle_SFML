@@ -20,6 +20,7 @@ public:
 
 	void operator +=(const Vec2& other); 
 	void operator -=(const Vec2& other);
+	void operator *=(const float value); 
 
 	void normalize(); 
 
