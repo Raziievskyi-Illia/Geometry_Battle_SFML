@@ -37,7 +37,6 @@ void Game::sMovement()
 	{
 		m_player->CTransform->velocity.x = 0;
 	}
-	int i = 0; 
 	for (auto& e : m_manager.getEntities("Special"))
 	{
 	    e->CTransform->angle += m_weapon_CFG.angularSpeed; 
@@ -45,7 +44,6 @@ void Game::sMovement()
 		float x = m_player->CTransform->pos.x + m_weapon_CFG.spinningRadius * std::cos(e->CTransform->angle);
 		float y = m_player->CTransform->pos.y + m_weapon_CFG.spinningRadius * std::sin(e->CTransform->angle);
 		e->CTransform->pos = Vec2(x, y); 
-		++i; 
 	}
 
 	for (auto& e : m_manager.getEntities())
