@@ -98,6 +98,9 @@ class Game
 	sf::Texture m_crosshairTexture; 
 	sf::Sprite m_crosshairSprite; 
 
+	/*sf::Texture m_backgroundTexture; 
+	sf::Sprite m_backgroundSprite; */
+
 	void sMovement(); 
 	void sUserInput(); 
 	void sCollision(); 

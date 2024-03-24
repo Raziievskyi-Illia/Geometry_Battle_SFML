@@ -335,7 +335,7 @@ void Game::sCollision()
 void Game::sRender()
 {
 	m_window.clear();
-
+//m_window.draw(m_backgroundSprite);
 	
 	for (auto& e : m_manager.getEntities())
 	{
@@ -349,6 +349,7 @@ void Game::sRender()
 	m_window.draw(e->CShape->circle);
 	}
 	m_Scoretext.setString("Score: " + std::to_string(m_score));
+	 
 	m_window.draw(m_crosshairSprite); 
 	m_window.draw(m_Scoretext); 
 	m_window.display();
@@ -511,11 +512,17 @@ Game::Game()
 	m_crosshairSprite.setTexture(m_crosshairTexture); 
 	m_crosshairSprite.setOrigin(m_crosshairSprite.getLocalBounds().width / 2, m_crosshairSprite.getLocalBounds().height / 2);
 	m_crosshairSprite.setScale(0.5f, 0.5f);
-
+	//sf::IntRect rect(0, 0, m_window.getSize().x, m_window.getSize().y); 
+	/*m_backgroundTexture.loadFromFile("background.png"); 
+	m_backgroundSprite.setTexture(m_backgroundTexture); 
+	m_backgroundSprite.setScale(2.f, 2.f); */
+	//m_backgroundSprite.setTextureRect(rect); 
 	if (!m_font.loadFromFile("my.otf"))
 	{
 	//	std::cout << "not open";
 	}
+
+	
 	m_Scoretext.setFont(m_font);
 	m_Scoretext.setFillColor(sf::Color::White);
 	m_Scoretext.setCharacterSize(35);
